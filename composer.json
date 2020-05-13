@@ -1,6 +1,6 @@
 {
     "name": "iamoreira/pagarme-php-sdk",
-    "description": "SDK do getway de pagamento pagar.me.",
+    "description": "Cliente PHP para integração server-side com APIs Pagarme V4",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -12,5 +12,10 @@
     "minimum-stability": "dev",
     "require": {
         "pagarme/pagarme-php": "4.x-dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pagarme\\": "src"
+        }
     }
 }
