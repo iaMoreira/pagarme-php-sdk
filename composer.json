@@ -1,0 +1,16 @@
+{
+    "name": "iamoreira/pagarme-php-sdk",
+    "description": "SDK do getway de pagamento pagar.me.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ian Andrade Moreira",
+            "email": "ianmoreira80@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "pagarme/pagarme-php": "4.x-dev"
+    }
+}
