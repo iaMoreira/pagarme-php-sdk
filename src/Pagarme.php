@@ -2,6 +2,7 @@
 
 namespace Pagarme;
 
+use ArrayObject;
 use PagarMe\Client;
 
 class Pagarme {
@@ -70,5 +71,57 @@ class Pagarme {
   private function clearField(string $param): string
   {
     return str_replace(['.', '/', '-', '(', ')', ',', ' '], '', $param);
+  }
+
+  /**
+   * @param array $payload
+   * @return \stdClass
+   */
+  public  function createCreditCard(array $payload)
+  {
+    $body = [
+      'holder_name' => \strtoupper($payload['holder_name']),
+      'number' => $payload['number'],
+      'expiration_date' => $this->clearField($payload['expiration_date']),
+      'cvv' => $payload['cvv'],
+    ];
+
+    if(isset($payload['customer_id'])){
+      $body['customer_id'] = $payload['customer_id'];
+    }
+    
+    $card = $this->pagarme->cards()->create($body);
+
+    if($card->valid !== true){
+      return null; // TODO cria uma exeção 
+    }
+
+    return $card;
+  }
+
+  /**
+   * @param array $payload
+   *
+   * @return \ArrayObject
+   */
+  public function getCreditCard(string $cardId)
+  {
+    $card = $this->pagarme->cards()->get([
+      'id' => $cardId
+    ]);
+
+    return $card;
+  }
+
+  /**
+   * @param array|null $payload
+   *
+   * @return \ArrayObject
+   */
+  public function getCreditCardList( array $payload = null)
+  {
+  
+    $cards = $this->pagarme->cards()->getList($payload);
+    return $cards;
   }
 }
