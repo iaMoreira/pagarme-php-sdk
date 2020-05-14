@@ -75,6 +75,13 @@ $pagarme->createCustumer([
 <?php
 $customers = $pagarme->getCustomerList();
 ``` 
+Ou também se necessário, você pode filtrar por algum dado específico do cliente, como mostra o exemplo com `name` abaixo:
+```php
+<?php
+$customers = $pagarme->getCustomerList([
+  'name'  => 'Yoda'
+]);
+``` 
 
 ### Retornando um cliente
 ```php

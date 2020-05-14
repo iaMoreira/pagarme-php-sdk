@@ -17,6 +17,10 @@ class Pagarme {
 
   private $card;
 
+  private $transaction;
+
+  private $transactionData;
+
   private $errors;
 
   public function getError() : ?string
@@ -30,6 +34,7 @@ class Pagarme {
   public function __construct(string $apiKey)
   {
     $this->pagarme = new Client($apiKey);
+    $this->transactionData = [];
   }
 
   /**
@@ -54,6 +59,7 @@ class Pagarme {
         'phone_numbers' => $payload['phone'] ? [$this->clearField($payload['phone'])] : $payload['phone_numbers'],
         'birthday' => $payload['birthday']
       ]);
+      $this->setCustumer();
       return $this->customer;
     }catch(\Exception $ex) {
       $this->errors = $ex->getMessage();
@@ -71,6 +77,7 @@ class Pagarme {
       $this->customer = $this->pagarme->customers()->get([
         'id' => $id
       ]);
+      $this->setCustumer();
       return $this->customer;
 
     } catch ( \PagarMe\Exceptions\PagarMeException $ex) {
@@ -94,6 +101,26 @@ class Pagarme {
     }
   }
 
+  private function setCustumer() : void
+  {
+    // var_dump($this->customer->documents);
+    $this->transactionData += [
+      'customer' => [
+        'external_id' => $this->customer->external_id,
+        'name' => $this->customer->name,
+        'type' => $this->customer->type,
+        'country' => $this->customer->country,
+        'documents' => [
+          [
+            'type'    => $this->customer->documents[0]->type,
+            'number'  => $this->customer->documents[0]->number
+          ]
+        ],
+        'phone_numbers' => $this->customer->phone_numbers,
+        'email' => $this->customer->email
+    ],
+    ];
+  }
   /**
    * @param string $param
    * @return string
@@ -124,13 +151,12 @@ class Pagarme {
       if($this->card->valid !== true){
         throw new Exception('Erro ao criar o cartão, verifique se os dados inseridos são válidos.');
       }
+      $this->setCreditCard();
       return $this->card;
     } catch(\Exception $ex){
       $this->errors = $ex->getMessage();
       return null;
     }
-
-
   }
 
   /**
@@ -144,7 +170,8 @@ class Pagarme {
       $this->card = $this->pagarme->cards()->get([
         'id' => $cardId
       ]);
-  
+      
+      $this->setCreditCard();
       return $this->card;
     } catch (\Exception $ex) {
       $this->errors = $ex->getMessage();
@@ -163,6 +190,38 @@ class Pagarme {
       $cards = $this->pagarme->cards()->getList($payload);
       return $cards;
     } catch(Exception $ex){
+      $this->errors = $ex->getMessage();
+      return null;
+    }
+  }
+
+  private function setCreditCard() 
+  {
+    $this->transactionData += [
+      'payment_method'  => 'credit_card',
+      'card_id'         => $this->card->id
+    ] ;
+  }
+
+  public function billet(string $instruction, int $expirationDays = 3 )
+  {
+    $this->transactionData += [
+      'payment_method'          => 'boleto',
+      'boleto_expiration_date'  => date('Y-m-d', \strtotime('+' . $expirationDays . 'days')),
+      'boleto_instructions'     => \substr($instruction, 0, 255)
+    ];
+  }
+
+  public function payResquest(int $amount) : ?stdClass
+  {
+    $this->transactionData += [
+      'amount' => $amount,
+    ];
+
+    try {
+      $this->transaction = $this->pagarme->transactions()->create($this->transactionData);
+      return $this->transaction;
+    } catch(\Exception $ex) {
       $this->errors = $ex->getMessage();
       return null;
     }
