@@ -2,8 +2,9 @@
 
 namespace Pagarme;
 
-use ArrayObject;
+use Exception;
 use PagarMe\Client;
+use stdClass;
 
 class Pagarme {
   
@@ -11,6 +12,17 @@ class Pagarme {
      * @var \PagarMe\Client
     */
   private $pagarme;
+
+  private $customer;
+
+  private $card;
+
+  private $errors;
+
+  public function getError() : ?string
+  {
+    return $this->errors;
+  }
 
    /**
      * @param string $apiKey
@@ -22,46 +34,64 @@ class Pagarme {
 
   /**
    * @param array $payload
-   * @return mixed|void
+   * @return null|stdClass
    */
-  public function createCustumer(array $payload) :\ArrayObject
+  public function createCustumer(array $payload) :?stdClass
   {
-    $customer = $this->pagarme->customers()->create([
-      'external_id' => $payload['id'],
-      'name' => $payload['name'],
-      'type' => $payload['type'] ?? 'individual',
-      'country' => $payload['country'] ?? 'br',
-      'email' => $payload['email'],
-      'documents' => [
-        [
-          'type' => $payload['documents']['type'] ?? 'cpf',
-          'number' => $payload['documents']['number'] ?? $this->clearField($payload['document'])
-        ]
-      ],
-      'phone_numbers' => $payload['phone'] ? [$this->clearField($payload['phone'])] : $payload['phone_numbers'],
-      'birthday' => $payload['birthday']
-    ]);
-
-    return $customer;
+    try{
+      $this->customer = $this->pagarme->customers()->create([
+        'external_id' => $payload['id'],
+        'name' => $payload['name'],
+        'type' => $payload['type'] ?? 'individual',
+        'country' => $payload['country'] ?? 'br',
+        'email' => $payload['email'],
+        'documents' => [
+          [
+            'type' => $payload['documents']['type'] ?? 'cpf',
+            'number' => $payload['documents']['number'] ?? $this->clearField($payload['document'])
+          ]
+        ],
+        'phone_numbers' => $payload['phone'] ? [$this->clearField($payload['phone'])] : $payload['phone_numbers'],
+        'birthday' => $payload['birthday']
+      ]);
+      return $this->customer;
+    }catch(\Exception $ex) {
+      $this->errors = $ex->getMessage();
+      return null;
+    }
   }
   
   /**
    * @param string $id = ID de cliente dentro do sistema da Pagar.me
-   * @return \ArrayObject
+   * @return null|stdClass
    */
-  public function getCustomer(string $id) 
+  public function getCustomer(string $id) : ?stdClass
   {
-    $customer = $this->pagarme->customers()->get([
-      'id' => $id
-    ]);
+    try {
+      $this->customer = $this->pagarme->customers()->get([
+        'id' => $id
+      ]);
+      return $this->customer;
 
-    return $customer;
+    } catch ( \PagarMe\Exceptions\PagarMeException $ex) {
+      $this->errors = $ex->getMessage();  
+      return null;
+    }
   }
   
-  
-  public function getCustomerList()
+  /**
+   * @param array|null $payload
+   *
+   * @return null|array
+   */
+  public function getCustomerList(array $payload = null) : ?array
   {
-    return $this->pagarme->customers()->getList();
+    try {
+      return $this->pagarme->customers()->getList($payload);
+    } catch (\Exception $ex) {
+      $this->errors = $ex->getMessage();      
+      return null;
+    }
   }
 
   /**
@@ -89,39 +119,52 @@ class Pagarme {
     if(isset($payload['customer_id'])){
       $body['customer_id'] = $payload['customer_id'];
     }
-    
-    $card = $this->pagarme->cards()->create($body);
-
-    if($card->valid !== true){
-      return null; // TODO cria uma exeção 
+    try {
+      $this->card = $this->pagarme->cards()->create($body);
+      if($this->card->valid !== true){
+        throw new Exception('Erro ao criar o cartão, verifique se os dados inseridos são válidos.');
+      }
+      return $this->card;
+    } catch(\Exception $ex){
+      $this->errors = $ex->getMessage();
+      return null;
     }
 
-    return $card;
+
   }
 
   /**
    * @param array $payload
    *
-   * @return \ArrayObject
+   * @return \stdClass
    */
-  public function getCreditCard(string $cardId)
+  public function getCreditCard(string $cardId) : ?stdClass
   {
-    $card = $this->pagarme->cards()->get([
-      'id' => $cardId
-    ]);
-
-    return $card;
+    try {
+      $this->card = $this->pagarme->cards()->get([
+        'id' => $cardId
+      ]);
+  
+      return $this->card;
+    } catch (\Exception $ex) {
+      $this->errors = $ex->getMessage();
+      return null;      
+    }
   }
 
   /**
    * @param array|null $payload
    *
-   * @return \ArrayObject
+   * @return null|array
    */
-  public function getCreditCardList( array $payload = null)
+  public function getCreditCardList(array $payload = null) : ?array
   {
-  
-    $cards = $this->pagarme->cards()->getList($payload);
-    return $cards;
+    try {
+      $cards = $this->pagarme->cards()->getList($payload);
+      return $cards;
+    } catch(Exception $ex){
+      $this->errors = $ex->getMessage();
+      return null;
+    }
   }
 }

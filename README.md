@@ -2,7 +2,19 @@
 
 Essa SDK foi construída com o intuito de torná-la flexível, de forma que todos possam utilizar todas as features, de todas as versões de API.
 
-Você pode acessar a documentação oficial do Pagar.me acessando esse link.
+Você pode acessar a documentação oficial do Pagar.me acessando esse [link](https://docs.pagar.me/).
+
+## Índice
+- [Instalação](#instalação)
+- [Configuração](#configuração)
+- [Clientes](#clientes)
+  - [Criando um cliente](#criando-um-cliente)
+  - [Retornando clientes](#retornando-clientes)
+  - [Retornando um cliente](#retornando-um-clientes)
+- [Cartões](#cartões)
+  - [Criando cartões](#criando-cartões)
+  - [Retornando cartões](#retornando-cartões)
+  - [Retornando um cartão](#retornando-um-cartão)
 
 ## Instalação
 Instale a biblioteca utilizando o comando
@@ -119,12 +131,12 @@ $visaCards = $pagarme->cards()->getList([
 
 Todos os filtros são os mesmos atributos de retorno do cartão criado, eles  também podem ser usados para buscas em ranges usando os prefixos:
 
-Prefixo	    | Significado
-:--------:  | :----------:
-<	          | menor que
->	          | maior que
-<=	        | menor ou igual a
->=    	    | maior ou igual a
+|Prefixo	    | Significado|
+:--------:    | :----------:
+|<	          | menor que|
+|>	          | maior que|
+|<=	          | menor ou igual a|
+|>=    	      | maior ou igual a|
 
 Por exemplo, para buscar em um range de date_created e outros:
 ```php
