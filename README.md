@@ -7,6 +7,12 @@ Você pode acessar a documentação oficial do Pagar.me acessando esse [link](ht
 ## Índice
 - [Instalação](#instalação)
 - [Configuração](#configuração)
+- [Transações](#transações)
+  - [Criando uma transação](#criando-uma-transação)
+    - [Cartão de Crédito](#cartão-de-credito)
+    - [Boleto](#boleto)
+  - [Capturando uma transação](#capturando-uma-transação)
+  - [Estornando uma transação](#estornando-uma-transação)
 - [Clientes](#clientes)
   - [Criando um cliente](#criando-um-cliente)
   - [Retornando clientes](#retornando-clientes)
@@ -32,13 +38,76 @@ require('vendor/autoload.php');
 $pagarme = new Pagarme\Pagarme('SUA_CHAVE_DE_API');
 ```
 
+
+
+
+## Transações
+
+Nesta seção será explicado como utilizar transações no Pagar.me com essa biblioteca.
+
+### Criando uma transação
+O exemplo abaixo mostra a forma mais simples de executar uma transação, para isso é abstraído outras informações que serão melhor explicadas nas próximas secções. Mas primeiro é necessário entender que para executar o pagamento deve-se setar o cliente e o cartão/boleto primeiro.
+
+#### Cartão de Crédito
+```php
+<?php
+# é necessário cadastrar um novo cliente ou setar um cliente cadastrado.
+$pagarme->customers()->set([
+    'id'        => '#123456789',
+    'name'      => 'João das Neves',
+    'email'     => 'joaoneves@norte.com',
+    'document'  => '198.789.700-51',
+    'phone'     => '+55 (73) 98150-9999',
+    'birthday'  => '1990-04-20'
+  ]);
+
+$pagarme->cards()->set([
+    'holder_name'     => 'Yoda',
+    'number'          => '4242424242424242',
+    'expiration_date' => '1225',
+    'cvv'             => '123'
+]);
+
+$transaction = $pagarme->transactions()->create(1000);
+```
+
+#### Boleto
+Digamos que já temos cliente cadastro cujo o ID dele é `123456789`, então vamos seta-lo para essa transação.
+```php
+<?php
+$pagarme->costumer()->set('ID_DO_CLIENTE'); # setando um cliente cadastrado
+
+$billet = $pagarme->billet('INSTRUÇÕES');
+
+$transaction = $pagarme->transactions()->create(1000);
+```
+
+### Capturando uma transação
+```php
+<?php
+$capturedTransaction = $pagarme->transactions()->capture([
+    'id' => 'ID_OU_TOKEN_DA_TRANSAÇÃO',
+    'amount' => VALOR_TOTAL_COM_CENTAVOS
+]);
+```
+
+### Estornando uma transação
+```php
+<?php
+$refundedTransaction = $pagarme->transactions()->refund([
+    'id' => 'ID_OU_TOKEN_DA_TRANSAÇÃO',
+]);
+```
+
+
 ## Clientes
 Clientes representam os usuários de sua loja, ou negócio. Este objeto contém informações sobre eles, como nome, e-mail e telefone, além de outros campos.
 
 ### Criando um cliente
 ```php
 <?php
-$pagarme->createCustumer([
+# apenas cria e retorna um cliente
+$customer = $pagarme->customers()->create([
     'id'        => '#123456789',
     'name'      => 'João das Neves',
     'email'     => 'joaoneves@norte.com',
@@ -46,12 +115,22 @@ $pagarme->createCustumer([
     'phone'     => '+55 (73) 98150-9999',
     'birthday'  => '1990-04-20'
   ]);  
+
+# cria um cliente e ainda seleciona para transação
+$customer = $pagarme->customers()->set([
+    'id'        => '#123456789',
+    'name'      => 'João das Neves',
+    'email'     => 'joaoneves@norte.com',
+    'document'  => '198.789.700-51',
+    'phone'     => '+55 (73) 98150-9999',
+    'birthday'  => '1990-04-20'
+  ]);
 ```
 Além dos paramêtros bases, é possível injetar uma forma mais completa do cliente:
 
 ```php
 <?php
-$pagarme->createCustumer([
+$pagarme->costumer()->create([
     'id'        => '#123456789',
     'name'      => 'João das Neves',
     'type'      => 'individual',
@@ -73,12 +152,12 @@ $pagarme->createCustumer([
 ### Retornando clientes
 ```php
 <?php
-$customers = $pagarme->getCustomerList();
+$customers = $pagarme->customers()->getList();
 ``` 
 Ou também se necessário, você pode filtrar por algum dado específico do cliente, como mostra o exemplo com `name` abaixo:
 ```php
 <?php
-$customers = $pagarme->getCustomerList([
+$customers = $pagarme->customers()->getList([
   'name'  => 'Yoda'
 ]);
 ``` 
@@ -86,9 +165,12 @@ $customers = $pagarme->getCustomerList([
 ### Retornando um cliente
 ```php
 <?php
-$customer = $pagarme->getCustomer([
-    'id' => 'ID_DO_CLIENTE'
-]);
+# apenas retorna o cliente cadastrado
+$customer = $pagarme->costumer()->get('ID_DO_CLIENTE');
+
+# retorna o cliente e seleciona ele para uma transação
+$customer = $pagarme->costumer()->set('ID_DO_CLIENTE');
+
 ``` 
 
 ## Cartões
@@ -97,7 +179,7 @@ Sempre que você faz uma requisição através da nossa API, nós guardamos as i
 ### Criando cartões
 ```php
 <?php
-$card = $pagarme->createCreditCard([
+$card = $pagarme->cards()->create([
     'holder_name'     => 'Yoda',
     'number'          => '4242424242424242',
     'expiration_date' => '1225',
@@ -108,9 +190,9 @@ $card = $pagarme->createCreditCard([
 Também há a opção de atribuir o cartão ao um cliente passando o um atríbuto a mais `customer_id`, isso garante que só esse cliente tem permissão para usar esse cartão.
 ```php
 <?php
-$card = $pagarme->createCreditCard([
+$card = $pagarme->cards()->create([
     ...
-    'costumer_id' => '#123456789'
+    'costumer_id' => 'ID_DO_CLIENTE'
 ]);
 ```
 
@@ -161,7 +243,9 @@ Para campos que sejam strings, a comparação é lexicográfica, letras maiúscu
 ### Retornando um cartão
 ```php
 <?php
-$card = $pagarme->cards()->get([
-    'id' => 'ID_DO_CARTÃO'
-]);
+$card = $pagarme->cards()->get('ID_DO_CARTÃO');
+
+# retorna o cartão e seleciona ele para transação.
+$card = $pagarme->cards()->set('ID_DO_CARTÃO');
+
 ```
